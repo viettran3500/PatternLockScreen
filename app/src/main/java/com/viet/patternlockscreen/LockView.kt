@@ -16,12 +16,12 @@ import kotlin.math.pow
 import kotlin.math.roundToInt
 import kotlin.math.sqrt
 
-class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
+class LockView(context: Context, attrs: AttributeSet) : View(context, attrs) {
 
     private val DEFAULT_NORMAL_COLOR = Color.GRAY
-    private val DEFAULT_MOVE_COLOR  = Color.BLUE
-    private val DEFAULT_ERROR_COLOR  = Color.RED
-    private val DEFAULT_ROW_COUNT  = 3
+    private val DEFAULT_MOVE_COLOR = Color.BLUE
+    private val DEFAULT_ERROR_COLOR = Color.RED
+    private val DEFAULT_ROW_COUNT = 3
 
     private val STATE_NORMAL = 0
     private val STATE_MOVE = 1
@@ -41,19 +41,19 @@ class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
 
     private var outerCirclePaint: Paint
 
-    var stateSparseArray: SparseIntArray
+    private var stateSparseArray: SparseIntArray
 
-    var selectedList: MutableList<PointF> = mutableListOf()
+    private var selectedList: MutableList<PointF> = mutableListOf()
 
-    private var standardPointsIndexList: MutableList<Int> = mutableListOf()
+    private var selectedList2: MutableList<PointF> = mutableListOf()
 
-    var linePath: Path = Path()
+    private var linePath: Path = Path()
 
-    var linePaint: Paint
+    private var linePaint: Paint
 
     private var timer: Timer? = null
 
-    private var touchPoint: PointF? =null
+    private var touchPoint: PointF? = null
 
     private var listener: OnDrawCompleteListener? = null
 
@@ -75,13 +75,15 @@ class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
         linePaint.color = moveColor
     }
 
-    private fun readAttrs(context: Context, attrs: AttributeSet){
+    private fun readAttrs(context: Context, attrs: AttributeSet) {
         val typedArray: TypedArray = context.obtainStyledAttributes(attrs, R.styleable.LockView)
-        normalColor = typedArray.getColor(R.styleable.LockView_normalColor,
+        normalColor = typedArray.getColor(
+            R.styleable.LockView_normalColor,
             DEFAULT_NORMAL_COLOR
         )
         moveColor = typedArray.getColor(R.styleable.LockView_moveColor, DEFAULT_MOVE_COLOR)
-        errorColor = typedArray.getColor(R.styleable.LockView_errorColor,
+        errorColor = typedArray.getColor(
+            R.styleable.LockView_errorColor,
             DEFAULT_ERROR_COLOR
         )
         rowCount = typedArray.getInteger(R.styleable.LockView_rowCount, DEFAULT_ROW_COUNT)
@@ -93,7 +95,7 @@ class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
 
         radius = min(w, h) / (2 * rowCount + rowCount - 1) * 1.0f
 
-        for(i in 0 until rowCount * rowCount){
+        for (i in 0 until rowCount * rowCount) {
             points.add(PointF((i % rowCount * 3 + 1) * radius, (i / rowCount * 3 + 1) * radius))
         }
     }
@@ -101,25 +103,34 @@ class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec)
 
-        val width: Int = getSize(widthMeasureSpec)
-        val height: Int = getSize(heightMeasureSpec)
+        val desiredWidth = 1000
+        val desiredHeight = 1000
 
+        val widthMode = MeasureSpec.getMode(widthMeasureSpec)
+        val widthSize = MeasureSpec.getSize(widthMeasureSpec)
+        val heightMode = MeasureSpec.getMode(heightMeasureSpec)
+        val heightSize = MeasureSpec.getSize(heightMeasureSpec)
+
+        val width: Int
+        val height: Int
+
+        if (widthMode == MeasureSpec.EXACTLY) {
+            width = widthSize
+        } else if (widthMode == MeasureSpec.AT_MOST) {
+            width = min(desiredWidth, widthSize)
+        } else {
+            width = desiredWidth
+        }
+
+        if (heightMode == MeasureSpec.EXACTLY) {
+            height = heightSize
+        } else if (heightMode == MeasureSpec.AT_MOST) {
+            height = min(desiredHeight, heightSize)
+        } else {
+            height = desiredHeight
+        }
         setMeasuredDimension(width, height)
     }
-
-    private fun getSize(measureSpec: Int): Int{
-        val mode = MeasureSpec.getMode(measureSpec)
-        val size = MeasureSpec.getSize(measureSpec)
-
-        if (mode == MeasureSpec.EXACTLY) {
-            return size
-        } else if (mode == MeasureSpec.AT_MOST) {
-            return min(size, dp2Px(600))
-        }
-        return dp2Px(600)
-    }
-
-
 
     override fun onDraw(canvas: Canvas?) {
         super.onDraw(canvas)
@@ -130,29 +141,29 @@ class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
         }
     }
 
-    private fun drawCircle(canvas: Canvas){
-        for(index in 0 until rowCount * rowCount){
-            when(stateSparseArray.get(index)){
-                STATE_NORMAL->{
+    private fun drawCircle(canvas: Canvas) {
+        for (index in 0 until rowCount * rowCount) {
+            when (stateSparseArray.get(index)) {
+                STATE_NORMAL -> {
                     innerCirclePaint.color = normalColor
-                    outerCirclePaint.color = normalColor and  0x66ffffff
+                    outerCirclePaint.color = normalColor and 0x66ffffff
                 }
-                STATE_MOVE->{
+                STATE_MOVE -> {
                     innerCirclePaint.color = moveColor
                     outerCirclePaint.color = moveColor and 0x66ffffff
                 }
-                STATE_ERROR->{
+                STATE_ERROR -> {
                     innerCirclePaint.color = errorColor
                     outerCirclePaint.color = errorColor and 0x66ffffff
                 }
             }
-            canvas?.drawCircle(points[index].x, points[index].y, radius, outerCirclePaint)
-            canvas?.drawCircle(points[index].x, points[index].y, radius / 2f, innerCirclePaint)
+            canvas.drawCircle(points[index].x, points[index].y, radius, outerCirclePaint)
+            canvas.drawCircle(points[index].x, points[index].y, radius / 2f, innerCirclePaint)
         }
     }
 
 
-    private fun drawLinePath(canvas: Canvas){
+    private fun drawLinePath(canvas: Canvas) {
         linePath.reset()
         if (selectedList.size > 0) {
             linePath.moveTo(selectedList[0].x, selectedList[0].y)
@@ -169,40 +180,29 @@ class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
 
     @SuppressLint("ClickableViewAccessibility")
     override fun onTouchEvent(event: MotionEvent?): Boolean {
-        when(event?.action){
-            MotionEvent.ACTION_DOWN-> reset()
-            MotionEvent.ACTION_MOVE->{
+        when (event?.action) {
+            MotionEvent.ACTION_DOWN -> reset()
+            MotionEvent.ACTION_MOVE -> {
                 if (touchPoint == null) {
                     touchPoint = PointF(event.x, event.y)
                 } else {
                     touchPoint!!.set(event.x, event.y)
                 }
 
-                for (i in 0 until rowCount * rowCount){
+                for (i in 0 until rowCount * rowCount) {
                     if (getDistance(touchPoint!!, points[i]) < radius) {
                         stateSparseArray.put(i, STATE_MOVE)
                         if (!selectedList.contains(points[i])) {
                             selectedList.add(points[i])
+                            selectedList2.add(points[i])
                         }
                         break
                     }
                 }
             }
-            MotionEvent.ACTION_UP->{
-                if (check()) {
-                    listener?.onComplete(true)
-                    for (i in 0 until  stateSparseArray.size()) {
-                        val index = stateSparseArray.keyAt(i)
-                        stateSparseArray.put(index, STATE_MOVE)
-                    }
-                } else {
-                    for (i in 0 until  stateSparseArray.size()) {
-                        val index = stateSparseArray.keyAt(i)
-                        stateSparseArray.put(index, STATE_ERROR)
-                    }
-                    linePaint.color = Color.RED
-                    listener?.onComplete(false)
-                }
+            MotionEvent.ACTION_UP -> {
+                listener?.onComplete(selectedList2)
+
                 touchPoint = null
                 if (timer == null) {
                     timer = Timer()
@@ -217,58 +217,64 @@ class LockView(context: Context, attrs: AttributeSet): View(context, attrs) {
                         stateSparseArray.clear()
                         postInvalidate()
                     }
-                }, 1000)
+                }, 300)
             }
         }
         invalidate()
         return true
     }
 
+    fun setColorError() {
+        for (i in 0 until stateSparseArray.size()) {
+            val index = stateSparseArray.keyAt(i)
+            stateSparseArray.put(index, STATE_ERROR)
+        }
+        linePaint.color = Color.RED
+
+        touchPoint = null
+        if (timer == null) {
+            timer = Timer()
+        }
+        timer!!.schedule(object : TimerTask() {
+            override fun run() {
+                linePath.reset()
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                    linePaint.setColor(0xee0000ff)
+                }
+                selectedList.clear()
+                stateSparseArray.clear()
+                postInvalidate()
+            }
+        }, 300)
+    }
+
     private fun reset() {
+        timer = null
+        innerCirclePaint.reset()
+        outerCirclePaint.reset()
         touchPoint = null
         linePath.reset()
         linePaint.color = Color.BLUE
         selectedList.clear()
+        selectedList2.clear()
         stateSparseArray.clear()
     }
 
-    fun onStop() {
-        timer?.cancel()
-    }
-
-    private fun check(): Boolean {
-        if (selectedList.size != standardPointsIndexList.size) {
-            return false
-        }
-        for (i in 0 until standardPointsIndexList.size) {
-            val index = standardPointsIndexList[i]
-            if (points[index] != selectedList[i]) {
-                return false
-            }
-        }
-        return true
-    }
-
-    fun setStandard(pointsList: MutableList<Int>?) {
-        if (pointsList == null) {
-            throw IllegalArgumentException("standard points index can't null")
-        }
-        if (pointsList.size > rowCount * rowCount) {
-            throw IllegalArgumentException("standard points index list can't large to rowcount * columncount")
-        }
-        standardPointsIndexList = pointsList
-    }
-
     interface OnDrawCompleteListener {
-        fun onComplete(isSuccess: Boolean)
+        fun onComplete(selectedList: MutableList<PointF>)
+    }
+
+    fun setOnDrawCompleteListener(listener: OnDrawCompleteListener) {
+        this.listener = listener
     }
 
     private fun getDistance(centerPoint: PointF, downPoint: PointF): Float {
         return sqrt((centerPoint.x - downPoint.x).pow(2) + (centerPoint.y - downPoint.y).pow(2))
     }
 
-    private fun dp2Px(dpValue: Int): Int{
-        return TypedValue.applyDimension(TypedValue.COMPLEX_UNIT_DIP,
+    private fun dp2Px(dpValue: Int): Int {
+        return TypedValue.applyDimension(
+            TypedValue.COMPLEX_UNIT_DIP,
             dpValue.toFloat(), resources.displayMetrics
         )
             .roundToInt()
